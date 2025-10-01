@@ -7,7 +7,7 @@ import warnings
 import logging
 
 # Importera våra egna moduler
-from OllamaCheckSpell import correct_transcription
+
 from Respons import generate_ai_response
 
 # Stäng av varningar
@@ -154,11 +154,8 @@ def process_text(original_text):
     if not original_text or not original_text.strip():
         return
     
-    print(f"Original: {original_text}")
-    corrected_text = original_text
-    print(f"Används: {corrected_text}")
-    
-    ai_response = generate_ai_response(corrected_text)
+    print(f"Användare: {original_text}")
+    ai_response = generate_ai_response(original_text)
     print(f"AI: {ai_response}")
     
     # Kolla om vi har grundinfo (namn, ålder, adress, besvär)
