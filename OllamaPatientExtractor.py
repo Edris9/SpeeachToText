@@ -4,7 +4,7 @@ import requests
 import json
 import logging
 from datetime import datetime
-
+from SchemaManager import get_schema
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 class PatientExtractor:
     def __init__(self, ollama_url: str = "http://localhost:11434"):
         self.ollama_url = ollama_url
+        self.booking_complete = False
         self.patient_info = {
             "namn": None,
             "ålder": None,
@@ -34,23 +35,24 @@ class PatientExtractor:
         """Extrahera patientdata med Ollama"""
         prompt = f"""Extrahera information från texten. Svara ENDAST med JSON.
 
-Text: "{text}"
+        Text: "{text}"
 
-JSON format:
-{{
-  "namn": "för- och efternamn eller null",
-  "ålder": "nummer eller null",
-  "adress": "gatuadress eller null",
-  "besvär": "symtom/problem eller null"
-}}
+        JSON format:
+        {{
+        "namn": "för- och efternamn eller null",
+        "ålder": "nummer eller null",
+        "adress": "gatuadress eller null",
+        "besvär": "symtom/problem eller null",
+        "datum": "datum som '10 oktober' eller 'imorgon' eller null"
+        }}
 
-JSON:"""
+        JSON:"""
 
         payload = {
             "model": "llama3.1:8b",
             "prompt": prompt,
             "stream": False,
-            "options": {"temperature": 0.1, "num_predict": 100}
+            "options": {"temperature": 0.1, "num_predict": 200}
         }
         
         try:
@@ -89,9 +91,26 @@ JSON:"""
         return "Övrigt"
     
     def save_to_csv(self) -> bool:
-        """Spara till CSV"""
         if not self.is_complete():
             return False
+        
+        
+        
+        from SchemaManager import get_schema
+        schema = get_schema()
+        
+        datum = schema.format_datum(self.patient_info["datum"] or "imorgon")
+        available = schema.get_available_slots(datum)
+        
+        if not available:
+            return False
+        
+        tid = available[0]
+        if not schema.book_slot(datum, tid):
+            return False
+        
+        self.patient_info["datum"] = datum
+        self.patient_info["tid"] = tid
         
         try:
             with open(self.csv_file, 'a', newline='', encoding='utf-8') as f:
@@ -103,24 +122,26 @@ JSON:"""
                     self.patient_info["adress"],
                     self.patient_info["besvär"],
                     self.classify_complaint(),
-                    self.patient_info["datum"],
-                    self.patient_info["tid"]
+                    datum,
+                    tid
                 ])
-            self.reset()
+            self.last_booking = {"datum": datum, "tid": tid}
+            self.booking_complete = True  
+            print(f"✓ Bokad: {datum} kl {tid}")
             return True
-        except Exception as e:
-            logger.error(f"CSV error: {e}")
+        except:
             return False
     
     def reset(self):
         """Rensa för ny patient"""
+        self.booking_complete = False  # Reset state
         self.patient_info = {
             "namn": None,
             "ålder": None,
             "adress": None,
             "besvär": None,
-            "datum": "imorgon",
-            "tid": "14:00"
+            "datum": None,  # Ändra till None
+            "tid": None     # Ändra till None
         }
     
     def get_info(self):

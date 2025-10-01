@@ -154,35 +154,15 @@ def process_text(original_text):
     if not original_text or not original_text.strip():
         return
     
+    if "tack för samtalet" in original_text.lower():
+        print("\n👋 Tack själv! Hej då!")
+        exit(0)
+    
     print(f"Användare: {original_text}")
     ai_response = generate_ai_response(original_text)
     print(f"AI: {ai_response}")
-    
-    # Kolla om vi har grundinfo (namn, ålder, adress, besvär)
-    from OllamaPatientExtractor import get_extractor
-    extractor = get_extractor()
-    info = extractor.get_info()
-    
-    # Visa vad vi har
-    if info["namn"] and info["ålder"] and info["adress"] and info["besvär"]:
-        print("\n✅ GRUNDINFO INSAMLAD:")
-        print(f"  Namn: {info['namn']}")
-        print(f"  Ålder: {info['ålder']}")
-        print(f"  Adress: {info['adress']}")
-        print(f"  Besvär: {info['besvär']}")
-        
-        # Fyll i standardvärden för datum/tid om de saknas
-        if not info["datum"]:
-            extractor.update_patient_info("datum", "imorgon")
-        if not info["tid"]:
-            extractor.update_patient_info("tid", "14:00")
-        
-        from OllamaPatientExtractor import extract_and_save
-        if extract_and_save():
-            print("✅ SPARAT TILL CSV!\n")
-    
     print()
-
+    
 def main():
     """Huvudfunktion"""
     processor, model, device = initialize_model()
