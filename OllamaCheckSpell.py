@@ -41,30 +41,22 @@ class OllamaSpellChecker:
             return False
     
     def correct_text(self, text: str) -> Optional[str]:
-        """
-        Korrigera stavning och grammatik i texten
-        
-        Args:
-            text: Text att korrigera
-            
-        Returns:
-            Korrigerad text eller None om fel uppstod
-        """
         if not text or not text.strip():
             return text
         
-        # Prompt för att korrigera svenska text
-        prompt = f"""Du är en svensk språkkorrigerare. Din uppgift är att korrigera stavfel, grammatikfel och göra texten mer naturlig på svenska.
+        # Uppdaterad prompt med few-shot för svenska/transkription
+        prompt = f"""Du är en svensk språkkorrigerare. Korrigera ENDAST uppenbara stavfel.
 
-VIKTIGT: 
-- Svara ENDAST med den korrigerade texten
-- Ingen förklaring eller kommentar
-- Behåll samma betydelse och stil
-- Om texten redan är korrekt, returnera den oförändrad
+            REGLER:
+            - Om texten är korrekt → returnera den OFÖRÄNDRAD
+            - Korrigera endast stavfel, INTE omformulera
+            - Bevara namn exakt som de är
+            - Bevara all information
+            - Svara ENDAST med texten, ingen förklaring
 
-Text att korrigera: "{text}"
+            Text: "{text}"
 
-Korrigerad text:"""
+            Korrigerad:"""
 
         try:
             payload = {
@@ -72,9 +64,9 @@ Korrigerad text:"""
                 "prompt": prompt,
                 "stream": False,
                 "options": {
-                    "temperature": 0.1,  # Låg temperatur för konsistens
+                    "temperature": 0.05,  # Sänk från 0.1 för färre hallucinationer
                     "top_p": 0.9,
-                    "num_predict": 200,  # Begränsa output-längd
+                    "num_predict": 200,
                 }
             }
             
