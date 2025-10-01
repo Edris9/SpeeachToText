@@ -5,23 +5,16 @@ import numpy as np
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 import warnings
 import logging
-
-# Importera våra egna moduler
-
 from Respons import generate_ai_response
-
-# Stäng av varningar
+from SendEmail import MailSender
 warnings.filterwarnings("ignore")
 logging.basicConfig(level=logging.ERROR)
-
 warnings.filterwarnings("ignore", message="You have passed task=transcribe")
-
-# Konfig
 CONFIG = {
     "MODEL_NAME": "openai/whisper-medium",
     "SAMPLE_RATE": 16000,
     "SILENCE_THRESHOLD": 0.008,
-    "MAX_DURATION": 30,  # Ändra från 12 till 30 sekunder
+    "MAX_DURATION": 30, 
     "SILENCE_AFTER_SPEECH": 2.5,
     "INITIAL_SILENCE_TIMEOUT": 8,
     "EXIT_SILENCE_TIMEOUT": 10,
@@ -29,21 +22,18 @@ CONFIG = {
     "LANGUAGE": "swedish",
     "MAX_TRANSCRIPTION_LENGTH": 50,
 }
-
 def initialize_model():
     """Ladda och konfigurera Whisper-modell"""
     print("Laddar Whisper-modell...")
-    
     processor = WhisperProcessor.from_pretrained(CONFIG["MODEL_NAME"])
     model = WhisperForConditionalGeneration.from_pretrained(CONFIG["MODEL_NAME"])
-    
     model.config.pad_token_id = model.config.eos_token_id
     model.config.forced_decoder_ids = None
-    
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
     model.eval()
-    
+
+
     if torch.__version__ >= "2.0" and device == "cuda":
         model = torch.compile(model)
     
@@ -161,6 +151,20 @@ def process_text(original_text):
     print(f"Användare: {original_text}")
     ai_response = generate_ai_response(original_text)
     print(f"AI: {ai_response}")
+    if "Bokad" in ai_response:
+        from OllamaPatientExtractor import get_extractor
+        
+        extractor = get_extractor()
+        info = extractor.get_info()
+        
+        if info.get("namn"):
+            # Fråga efter email
+            print("\nVilken email-adress vill du ha bekräftelsen till?")
+
+            email = input("Skriva in ditt email:")
+            
+            mail = MailSender()
+            mail.send_confirmation(info, email)
     print()
     
 def main():

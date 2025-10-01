@@ -33,17 +33,22 @@ class PatientExtractor:
     
     def extract_from_text(self, text: str):
         """Extrahera patientdata med Ollama"""
-        prompt = f"""Extrahera information från texten. Svara ENDAST med JSON.
+        prompt = f"""Extrahera information. Svara ENDAST med JSON.
 
         Text: "{text}"
+
+        Regler:
+        - Besvär = vad personen har problem med (t.ex. "ont i benen")
+        - Datum = när personen vill boka (t.ex. "imorgon", "10 oktober")
+        - Om texten säger "sedan igår" eller "i 3 dagar" = det är INTE datum, det beskriver besvären
 
         JSON format:
         {{
         "namn": "för- och efternamn eller null",
         "ålder": "nummer eller null",
         "adress": "gatuadress eller null",
-        "besvär": "symtom/problem eller null",
-        "datum": "datum som '10 oktober' eller 'imorgon' eller null"
+        "besvär": "symtom eller null",
+        "datum": "bokningsdatum eller null"
         }}
 
         JSON:"""
